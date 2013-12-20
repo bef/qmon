@@ -1,0 +1,30 @@
+[global]
+plugin_path=/opt/qmon/plugins /usr/lib/nagios/plugins
+default_interval=3600
+
+[tohu]
+type=host
+
+[na]
+type=host
+hostname=na
+ip_pub=...
+ip_priv=...
+desc=na.pentaphase.de
+
+[na_ssh]
+type=check
+host=na
+desc=SSH
+exec=check_ssh -H $cfg(na.hostname) -4
+; enabled=0
+
+[na_https]
+type=check
+host=na
+enabled=0
+
+[foo]
+enabled=0
+
+## end.
