@@ -1,11 +1,9 @@
-#!/usr/bin/env tclsh8.6
-
 package require inifile
 
 proc parse_config {fn} {
 	array set cfg {global.plugin_path {} global.default_interval 3600 checks {}}
-	set default_check {host unknown desc "" enabled 1 exec {} interval ""}
-	set default_host {desc "" exec ""}
+	set default_check {host unknown desc "" enabled 1 cmd {} interval ""}
+	set default_host {desc ""}
 	
 	set ini [::ini::open $fn r]
 	foreach s [::ini::sections $ini] {
@@ -43,8 +41,8 @@ proc parse_config {fn} {
 	foreach {host checks} $cfg(checks) {
 		foreach check $checks {
 			## subst commands
-			set cmd $cfg(${check}.exec)
-			set cfg(${check}.exec) [subst -nocommands $cmd]
+			set cmd $cfg(${check}.cmd)
+			set cfg(${check}.cmd) [subst -nocommands $cmd]
 	
 			## set default values
 			if {$cfg(${check}.interval) eq ""} {set cfg(${check}.interval) $cfg(global.default_interval)}

@@ -4,7 +4,7 @@
 ##   BeF <bef@pentaphase.de> - 2014-01-15
 ##
 
-set libdir "."
+set libdir [file dirname [info script]]
 if {[info exists env(QMON)]} {set libdir $env(QMON)}
 
 set qmon_version "0.1dev"
@@ -13,11 +13,11 @@ set qmon_version "0.1dev"
 package require cmdline
 set options [list \
 	[list c.arg "${libdir}/qmon.ini" "configuration file"] \
-	[list db.arg "${libdir}/qmon.db" "sqlite db"] \
+	[list db.arg "${libdir}/db/qmon.db" "sqlite db"] \
 	{t "test mode. print checks, but do not execute. only relevant for cmd 'check'"} \
 	{f "force check now. only relevant for cmd 'check'"} \
 	]
-set usage "v$::qmon_version - by BeF <bef@pentaphase.de>\n$::argv0 \[options] <showconfig|update|check>\noptions:"
+set usage "v$::qmon_version - by BeF <bef@pentaphase.de>\n$::argv0 \[options] <showconfig|update|check|status>\noptions:"
 if {[catch {
 	array set params [::cmdline::getoptions argv $options $usage]
 } err]} {
@@ -62,12 +62,12 @@ switch -glob -- $argv {
 		create_db
 		foreach check [all_checks_names] {
 			if {[info exists cfg(${check}.type)]} {continue}
-			if {$cfg(${check}.type eq "check"} {continue}
+			if {$cfg(${check}.type) eq "check"} {continue}
 			delete_check $check
 		}
 		foreach {host checks} $cfg(checks) {
 			foreach check $checks {
-				update_check $check $::cfg(${check}.exec) $::cfg(${check}.interval) $::cfg(${check}.enabled) $::cfg(${check}.host)
+				update_check $check $::cfg(${check}.cmd) $::cfg(${check}.interval) $::cfg(${check}.enabled) $::cfg(${check}.host) $::cfg(${check}.desc)
 			}
 		}
 		db close

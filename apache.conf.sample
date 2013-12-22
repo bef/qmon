@@ -1,0 +1,21 @@
+## apache configuration for qmon
+
+ScriptAlias /cgi-bin/qmon /opt/qmon/cgi-bin
+
+Alias /qmon /opt/qmon/htdocs
+
+<DirectoryMatch "^(/opt/qmon/htdocs|/opt/qmon/cgi-bin)">
+	Options FollowSymLinks
+
+	DirectoryIndex index.html
+
+	AllowOverride AuthConfig
+	#Order Allow,Deny
+	#Allow From 10.93.115.0/24
+
+	#AuthName "QMON Access"
+	#AuthType Basic
+	#AuthUserFile /.../htpasswd.users
+	#Require valid-user
+</DirectoryMatch>
+

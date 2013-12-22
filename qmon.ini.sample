@@ -16,11 +16,10 @@ desc=na.pentaphase.de
 type=check
 host=na
 desc=SSH
-exec=check_ssh -H $cfg(na.hostname) -4
+cmd=check_ssh -H $cfg(na.hostname) -4
 ; enabled=0
 
 [na_https]
-type=check
 host=na
 enabled=0
 

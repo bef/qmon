@@ -17,6 +17,7 @@ proc create_db {} {
 			interval NUMERIC,
 			enabled INTEGER,
 			host TEXT,
+			desc TEXT,
 			status TEXT,
 			output TEXT,
 			perfdata TEXT,
@@ -25,17 +26,17 @@ proc create_db {} {
 	}
 }
 
-proc update_check {check cmd interval enabled host} {
+proc update_check {check cmd interval enabled host desc} {
 	if {[db exists {SELECT 1 FROM checks WHERE name = :check}]} {
 		db eval {
 			UPDATE checks
-				SET cmd = :cmd, interval = :interval, enabled = :enabled, host = :host
+				SET cmd = :cmd, interval = :interval, enabled = :enabled, host = :host, desc = :desc
 				WHERE name = :check
 		}
 	} else {
 		db eval {
-			INSERT INTO checks (name, cmd, interval, enabled, host, status)
-				VALUES (:check, :cmd, :interval, :enabled, :host, 'new')
+			INSERT INTO checks (name, cmd, interval, enabled, host, desc, status)
+				VALUES (:check, :cmd, :interval, :enabled, :host, :desc, 'new')
 		}
 	}
 }
