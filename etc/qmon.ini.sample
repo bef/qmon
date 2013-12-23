@@ -1,6 +1,7 @@
 [global]
 plugin_path=/opt/qmon/plugins /usr/lib/nagios/plugins
 default_interval=3600
+;notify_cmd=...
 
 [tohu]
 type=host

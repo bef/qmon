@@ -18,23 +18,23 @@ proc statuslabel {status} {
 ##
 
 if {[info exists env(QMON)]} {
-	set libdir $env(QMON)
+	set qmondir $env(QMON)
 } elseif [info exists env(SCRIPT_FILENAME)] {
-	set libdir [file join [file dirname $env(SCRIPT_FILENAME)] ..]
+	set qmondir [file join [file dirname $env(SCRIPT_FILENAME)] ..]
 } else {
-	set libdir [file join [file dirname $::argv0] ..]
+	set qmondir [file join [file dirname $::argv0] ..]
 }
 
-# source [file join $libdir config-parser.tcl]
-source [file join $libdir sqlite-backend.tcl]
+# source [file join $qmondir config-parser.tcl]
+source [file join $qmondir lib sqlite-backend.tcl]
 
 ## get config
-# set qmon_ini [file join $libdir qmon.ini]
+# set qmon_ini [file join $qmondir qmon.ini]
 # if {[info exists env(QMON_INI)]} {set qmon_ini $env(QMON_INI)}
 # array set ::cfg [parse_config $qmon_ini]
 
 ## db
-set qmon_db [file join $libdir db qmon.db]
+set qmon_db [file join $qmondir db qmon.db]
 if {[info exists env(QMON_DB)]} {set qmon_db $env(QMON_DB)}
 if {![file readable $qmon_db]} {puts "DB not readable: $qmon_db"; exit 1}
 init_db $qmon_db true
@@ -94,7 +94,7 @@ puts {
 </div>
 }
 
-# puts $libdir
+# puts $qmondir
 # puts foo.
 # parray env
 

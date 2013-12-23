@@ -4,16 +4,17 @@
 ##   BeF <bef@pentaphase.de> - 2014-01-15
 ##
 
-set libdir [file dirname [info script]]
-if {[info exists env(QMON)]} {set libdir $env(QMON)}
+set qmondir [file dirname [info script]]
+if {[info exists env(QMON)]} {set qmondir $env(QMON)}
 
 set qmon_version "0.1dev"
 
 ## parse command line arguments
 package require cmdline
 set options [list \
-	[list c.arg "${libdir}/qmon.ini" "configuration file"] \
-	[list db.arg "${libdir}/db/qmon.db" "sqlite db"] \
+	[list ini.arg "${qmondir}/etc/qmon.ini" "configuration file"] \
+	[list db.arg "${qmondir}/db/qmon.db" "sqlite db"] \
+	[list lib.arg "${qmondir}/lib" "lib directory"] \
 	{t "test mode. print checks, but do not execute. only relevant for cmd 'check'"} \
 	{f "force check now. only relevant for cmd 'check'"} \
 	]
@@ -25,12 +26,12 @@ if {[catch {
 	exit 1
 }
 
-source [file join $libdir nagios-parser.tcl]
-source [file join $libdir config-parser.tcl]
-source [file join $libdir sqlite-backend.tcl]
+source [file join $params(lib) nagios-parser.tcl]
+source [file join $params(lib) config-parser.tcl]
+source [file join $params(lib) sqlite-backend.tcl]
 
 ## get config
-array set ::cfg [parse_config $params(c)]
+array set ::cfg [parse_config $params(ini)]
 # parray cfg
 
 switch -glob -- $argv {
@@ -60,16 +61,22 @@ switch -glob -- $argv {
 	update {
 		init_db $params(db)
 		create_db
+		
+		## delete checks from db which are not in cfg
 		foreach check [all_checks_names] {
-			if {![info exists cfg(${check}.type)]} {continue}
-			if {$cfg(${check}.type) eq "check"} {continue}
+			if {[info exists cfg(${check}.type)]} {
+				if {$cfg(${check}.type) eq "check"} {continue}
+			}
 			delete_check $check
 		}
+		
+		## create/update all other checks
 		foreach {host checks} $cfg(checks) {
 			foreach check $checks {
 				update_check $check $::cfg(${check}.cmd) $::cfg(${check}.interval) $::cfg(${check}.enabled) $::cfg(${check}.host) $::cfg(${check}.desc)
 			}
 		}
+		
 		db close
 	}
 	
@@ -96,7 +103,7 @@ switch -glob -- $argv {
 			lassign $ret code status2 output perfdata
 			update_result $name $status2 $output $perfdata
 			
-			if {$status ne $status2 && $cfg(global.notify_cmd) ne ""} {
+			if {$status ne $status2 && [info exists cfg(global.notify_cmd)]} {
 				set cmd [lmap arg $cfg(global.notify_cmd) {subst $arg}]
 				if {[catch {exec {*}$cmd} err]} {puts stderr "ERROR in cmd for $name:\n$err"}
 			}
@@ -115,7 +122,7 @@ switch -glob -- $argv {
 	}
 	
 	default {
-		puts "? :("
+		puts "? :(\ntry $::argv0 -h"
 		exit 1
 	}
 }

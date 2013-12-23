@@ -1,0 +1,15 @@
+[global]
+order=ok,warning,critical
+
+[ok]
+http=tcp*,*:80
+https=tcp*,*:443
+ignore=*,192.168.250:*
+; localhost=*,127.0.0.1:*
+samba=*:139
+
+[warning]
+localhost=*,127.0.0.1:*
+
+[critical]
+catchall=*
