@@ -1,13 +1,19 @@
 #!/usr/bin/env tclsh8.6
 
 package require ncgi
-::ncgi::header {text/html; charset=utf-8} {*}{Cache-Control "no-store,no-cache,max-age=0,must-revalidate"
-Expires "Thu, 01 Dec 1994 16:00:00 GMT"
-Pragma "no-cache"
-"X-Content-Type-Options" nosniff
-"X-DNS-Prefetch-Control" off
-"X-Frame-Options" sameorigin
-"X-XSS-Protection" "1; mode=block"}
+
+##
+
+proc statuslabel {status} {
+	switch $status {
+		ok {return success}
+		warning {return warning}
+		critical {return danger}
+		unknown {return info}
+		new -
+		default {return default}
+	}
+}
 
 ##
 
@@ -19,13 +25,13 @@ if {[info exists env(QMON)]} {
 	set libdir [file join [file dirname $::argv0] ..]
 }
 
-source [file join $libdir config-parser.tcl]
+# source [file join $libdir config-parser.tcl]
 source [file join $libdir sqlite-backend.tcl]
 
 ## get config
-set qmon_ini [file join $libdir qmon.ini]
-if {[info exists env(QMON_INI)]} {set qmon_ini $env(QMON_INI)}
-array set ::cfg [parse_config $qmon_ini]
+# set qmon_ini [file join $libdir qmon.ini]
+# if {[info exists env(QMON_INI)]} {set qmon_ini $env(QMON_INI)}
+# array set ::cfg [parse_config $qmon_ini]
 
 ## db
 set qmon_db [file join $libdir db qmon.db]
@@ -34,6 +40,14 @@ if {![file readable $qmon_db]} {puts "DB not readable: $qmon_db"; exit 1}
 init_db $qmon_db true
 
 ##
+
+::ncgi::header {text/html; charset=utf-8} {*}{Cache-Control "no-store,no-cache,max-age=0,must-revalidate"
+Expires "Thu, 01 Dec 1994 16:00:00 GMT"
+Pragma "no-cache"
+"X-Content-Type-Options" nosniff
+"X-DNS-Prefetch-Control" off
+"X-Frame-Options" sameorigin
+"X-XSS-Protection" "1; mode=block"}
 
 puts [subst {<!DOCTYPE html>
 <html>
@@ -53,11 +67,32 @@ puts [subst {<!DOCTYPE html>
   <div class="container">
 
     <div class="starter-template">
-      <h1>Status</h1>
-      <p class="lead">TPS Report</p>
+      <h1>QMON Status</h1>
+      <p class="lead">Service Detail</p>
     </div>
 }]
 
+puts {<div class="panel panel-default">
+  <div class="panel-body">
+}
+
+set statuscount [db eval {SELECT status, COUNT(*) AS cnt FROM checks WHERE enabled GROUP BY status;}]
+foreach status {ok warning critical unknown new} {
+	set cnt 0
+	if {[dict exists $statuscount $status]} {
+		set cnt [dict get $statuscount $status]
+	}
+	set statuslabel default
+	if {$cnt} {
+		set statuslabel [statuslabel $status]
+	}
+	puts [subst {<span class="label label-${statuslabel}">$status: $cnt</span></td>}]
+}
+
+puts {
+	 </div>
+</div>
+}
 
 # puts $libdir
 # puts foo.
@@ -68,14 +103,7 @@ puts {
 	<tr><th>Host</th><th>Status</th><th>Description</th><th>Last Check</th><th>Interval</th><th>Output</th></tr>
 }
 db eval {SELECT * FROM checks WHERE enabled ORDER BY host, name} c {
-	# puts "-------------$c(name)"
-	switch $c(status) {
-		ok {set statuslabel success}
-		warning {set statuslabel warning}
-		critical {set statuslabel danger}
-		unknown -
-		default {set statuslabel default}
-	}
+	set statuslabel [statuslabel $c(status)]
 	puts [subst {
 		<tr>
 		<td>$c(host)</td>
@@ -86,25 +114,6 @@ db eval {SELECT * FROM checks WHERE enabled ORDER BY host, name} c {
 		<td>$c(output)</td>
 		</tr>
 	}]
-	# puts $c(enabled)
-	# puts "</td><td>"
-	# puts "$c(status)"
-	# puts "</td><td>"
-	# puts "$c(name)"
-	# puts "</td><td>"
-	# puts "$c(cmd)"
-	# puts "</td><td>"
-	# puts "$c(interval)"
-	# puts "</td><td>"
-	# puts "$c(last_check)"
-	# puts "</td><td>"
-	# puts "$c(output)"
-	# puts "</td><td>"
-	# puts "$c(perfdata)"
-	# puts "</td><td>"
-	# puts [format "\[%7s] %-30s %s" $c(status) "$c(host)/$c(name)" $c(last_check)]
-	# puts "$c(output) | $c(perfdata)"
-	# puts "</tr>"
 }
 puts {</table>}
 

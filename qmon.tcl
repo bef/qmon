@@ -61,7 +61,7 @@ switch -glob -- $argv {
 		init_db $params(db)
 		create_db
 		foreach check [all_checks_names] {
-			if {[info exists cfg(${check}.type)]} {continue}
+			if {![info exists cfg(${check}.type)]} {continue}
 			if {$cfg(${check}.type) eq "check"} {continue}
 			delete_check $check
 		}
@@ -94,8 +94,13 @@ switch -glob -- $argv {
 			
 			set ret [nagios_exec $cmd]
 			lassign $ret code status2 output perfdata
-			# if {$status ne $status2} {...}
 			update_result $name $status2 $output $perfdata
+			
+			if {$status ne $status2 && $cfg(global.notify_cmd) ne ""} {
+				set cmd [lmap arg $cfg(global.notify_cmd) {subst $arg}]
+				if {[catch {exec {*}$cmd} err]} {puts stderr "ERROR in cmd for $name:\n$err"}
+			}
+			
 		}
 		db close
 	}

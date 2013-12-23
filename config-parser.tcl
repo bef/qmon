@@ -2,7 +2,7 @@ package require inifile
 
 proc parse_config {fn} {
 	array set cfg {global.plugin_path {} global.default_interval 3600 checks {}}
-	set default_check {host unknown desc "" enabled 1 cmd {} interval ""}
+	set default_check {host unknown desc "" enabled 1 cmd {} interval "" type check}
 	set default_host {desc ""}
 	
 	set ini [::ini::open $fn r]
