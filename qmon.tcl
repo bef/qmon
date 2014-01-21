@@ -17,6 +17,7 @@ set options [list \
 	[list lib.arg "${qmondir}/lib" "lib directory"] \
 	{t "test mode. print checks, but do not execute. only relevant for cmd 'check'"} \
 	{f "force check now. only relevant for cmd 'check'"} \
+	{nc "no color output. for 'status'"} \
 	]
 set usage "v$::qmon_version - by BeF <bef@pentaphase.de>\n$::argv0 \[options] <showconfig|update|check|status>\noptions:"
 if {[catch {
@@ -34,7 +35,7 @@ source [file join $params(lib) sqlite-backend.tcl]
 array set ::cfg [parse_config $params(ini)]
 # parray cfg
 
-switch -glob -- $argv {
+switch -glob -- [lindex $argv 0] {
 	showconfig {
 		puts "-------"
 		puts "qmon: $::qmon_version"
@@ -81,8 +82,9 @@ switch -glob -- $argv {
 	}
 	
 	check {
+		set testlist [lrange $argv 1 end]
 		init_db $params(db)
-		foreach {name cmd status} [get_checks_for_execution $params(f)] {
+		foreach {name cmd status} [get_checks_for_execution $params(f) $testlist] {
 			if {[string index $cmd 0] ne "/"} {
 				set cmd1 [lindex [split $cmd " "] 0]
 			
@@ -113,9 +115,18 @@ switch -glob -- $argv {
 	}
 	
 	status {
+		array set color {}
+		if {!$params(nc)} {
+			## color output
+			package require term::ansi::code::ctrl
+			namespace import ::term::ansi::code::ctrl::sda_*
+			array set color [list ok [sda_fggreen] warning [sda_fgyellow] critical [sda_fgred] unknown [sda_fgcyan] new [sda_fgwhite] default [sda_fgdefault]]
+		}
 		init_db $params(db)
-		db eval {SELECT * FROM checks ORDER BY host, name} c {
-			puts [format "\[%7s] %-30s %s" $c(status) "$c(host)/$c(name)" $c(last_check)]
+		db eval {SELECT * FROM checks WHERE enabled ORDER BY host, name} c {
+			set cstart [expr {[info exists color($c(status))] ? $color($c(status)) : ""}]
+			set cend $color(default)
+			puts [format "* \[${cstart}%7s${cend}] %-30s %s" $c(status) "$c(host)/$c(name)" $c(last_check)]
 			puts "$c(output) | $c(perfdata)"
 		}
 		db close

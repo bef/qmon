@@ -49,13 +49,22 @@ proc delete_check {check} {
 	db eval {DELETE FROM checks WHERE name = :check}
 }
 
-proc get_checks_for_execution {{force 0}} {
+proc get_checks_for_execution {{force 0} {testlist {}}} {
 	set sql {
 		SELECT name, cmd, status
 			FROM checks
 			WHERE enabled}
 	if {!$force} {
 		append sql { AND (last_check IS NULL OR strftime('%s', 'now') - strftime('%s', last_check) >= interval)}
+	}
+	if {$testlist ne ""} {
+		set i 0
+		foreach testname $testlist {
+			incr i
+			lappend testlistsql "name = :testname_$i"
+			set testname_$i $testname
+		}
+		append sql " AND ([join $testlistsql " OR "])"
 	}
 	return [db eval $sql]
 }

@@ -10,6 +10,7 @@ samba=*:139
 
 [warning]
 localhost=*,127.0.0.1:*
+localhost6=*,::1:*
 
 [critical]
 catchall=*
