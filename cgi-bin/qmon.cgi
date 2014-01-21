@@ -1,6 +1,8 @@
 #!/usr/bin/env tclsh8.6
 
 package require ncgi
+package require html
+interp alias {} he {} ::html::html_entities
 
 ##
 
@@ -94,10 +96,6 @@ puts {
 </div>
 }
 
-# puts $qmondir
-# puts foo.
-# parray env
-
 puts {
 	<table class="table">
 	<tr><th>Host</th><th>Status</th><th>Description</th><th>Last Check</th><th>Interval</th><th>Output</th></tr>
@@ -106,12 +104,12 @@ db eval {SELECT * FROM checks WHERE enabled ORDER BY host, name} c {
 	set statuslabel [statuslabel $c(status)]
 	puts [subst {
 		<tr>
-		<td>$c(host)</td>
-		<td><span class="label label-${statuslabel}">$c(status)</span></td>
-		<td>$c(desc)</td>
-		<td>$c(last_check)</td>
-		<td>$c(interval)s</td>
-		<td>$c(output)</td>
+		<td>[he $c(host)]</td>
+		<td><span class="label label-${statuslabel}">[he $c(status)]</span></td>
+		<td>[he $c(desc)]</td>
+		<td>[he $c(last_check)]</td>
+		<td>[he $c(interval)]s</td>
+		<td>[he $c(output)]</td>
 		</tr>
 	}]
 }
@@ -128,8 +126,6 @@ puts [subst {
     <script src="/qmon/js/bootstrap.min.js"></script>
   </body>
 </html>}]
-
-##
 
 
 ##

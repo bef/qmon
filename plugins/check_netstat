@@ -1,0 +1,107 @@
+#!/usr/bin/env tclsh8.6
+#
+
+package require cmdline
+package require inifile
+
+##
+
+set options [list \
+	[list ini.arg "[file dirname [info script]]/../etc/check_netstat.ini" "config file"] \
+	{v 0 "verbose output"}
+]
+
+set usage "- detect unknown listening udp/tcp sockets\n::argv0 \[options]\noptions:"
+if {[catch {
+	array set params [::cmdline::getoptions argv $options $usage]
+} err]} {
+	puts $err
+	exit 3
+}
+
+##
+
+proc netstat {} {
+	if {[catch {exec netstat -lntu} result]} {
+		puts "ERROR: $result"
+		exit 3
+	}
+
+	set res {}
+	set lines [split $result "\n"]
+	foreach l [lrange $lines 2 end] {
+		if {![regexp {^(.*?)\s+\d+\s+\d+\s+(.*?)\s+} $l -> proto addr]} {continue}
+		lappend res "$proto,$addr"
+	}
+	return $res
+}
+
+##
+
+proc get_config {fn} {
+	set ret {}
+	set ini [::ini::open $fn r]
+	set order [::ini::value $ini global order "ok,warning,critical"]
+	set order [split $order ","]
+	foreach group $order {
+		lappend ret $group [::ini::get $ini $group]
+	}
+	::ini::close $ini
+	return $ret
+}
+
+##
+
+proc match_port {port config} {
+	foreach {group kv} $config {
+		# puts $group
+		foreach {name pattern} $kv {
+			if {[string match $pattern $port]} {
+				return $group
+			}
+		}
+	}
+	return unmatched
+}
+
+if {[catch {
+	set netstat [netstat]
+	set config [get_config $params(ini)]
+} err]} {
+	puts "ERROR: $err"
+	exit 3
+}
+
+array set result {unmatched {} ok {} warning {} critical {}}
+foreach port $netstat {
+	set group [match_port $port $config]
+	lappend result($group) $port
+}
+
+set ret_state ok
+set ret_string ""
+if {[llength $result(unmatched)]} {
+	set ret_state warning
+	append ret_string " UNMATCHED: $result(unmatched)"
+}
+if {[llength $result(warning)]} {
+	set ret_state warning
+	append ret_string " WARNING: $result(warning)"
+}
+if {[llength $result(critical)]} {
+	set ret_state critical
+	append ret_string " CRITICAL: $result(critical)"
+}
+set ret_string "${ret_state}$ret_string"
+puts $ret_string
+
+if {$params(v)} {
+	parray result
+}
+
+switch $ret_state {
+	ok {exit 0}
+	warning {exit 1}
+	critical {exit 2}
+	default {exit 3}
+}

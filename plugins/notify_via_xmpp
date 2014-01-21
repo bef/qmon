@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+## xmpp sender script. derived from http://xmpppy.sourceforge.net/examples/xsend.py
+## / BeF / 2014-01-19
+##
+
+import sys, os, xmpp, time
+import ConfigParser
+
+if len(sys.argv) <= 1:
+	print "Syntax: echo text | " + sys.argv[0] + " <JID> [more JIDs ...]"
+	sys.exit(1)
+
+##
+
+text = sys.stdin.read()
+
+##
+
+config = ConfigParser.ConfigParser()
+configfilename = os.path.join(os.path.dirname(sys.argv[0]), '..', 'etc', 'notify_via_xmpp.ini')
+config.read(configfilename)
+
+jidparams = {}
+for k, v in config.items('jidparams'):
+	jidparams[k] = v
+
+##
+
+jid=xmpp.protocol.JID(jidparams['jid'])
+cl=xmpp.Client(jid.getDomain(),debug=[])
+
+con = cl.connect()
+auth = cl.auth(jid.getNode(),jidparams['password'],resource=jid.getResource())
+
+for tojid in sys.argv[1:]:
+	cl.send(xmpp.protocol.Message(tojid, text, typ='chat'))
+
+time.sleep(1)   # some older servers will not send the message if you disconnect immediately after sending
+
+cl.disconnect()
