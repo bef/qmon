@@ -1,28 +1,40 @@
 [global]
 plugin_path=/opt/qmon/plugins /usr/lib/nagios/plugins
 default_interval=3600
-;notify_cmd=...
+;notify_cmd=echo -e "$name is now $status2 (was $status)" | ${::qmondir}/plugins/notify_via_xmpp me@jabber.example.com
 
 [tohu]
 type=host
 
-[na]
+[ex]
 type=host
-hostname=na
+hostname=example.com
 ip_pub=...
 ip_priv=...
-desc=na.pentaphase.de
+desc=example.com
 
-[na_ssh]
+[ex_ssh]
 type=check
-host=na
+host=ex
 desc=SSH
 cmd=check_ssh -H $cfg(na.hostname) -4
 ; enabled=0
 
-[na_https]
-host=na
+[ex_https]
+host=ex
 enabled=0
+
+[foo_ok]
+cmd=$::qmondir/test/nagiosplugintest.sh ok
+
+[foo_warning]
+cmd=$::qmondir/test/nagiosplugintest.sh warning
+
+[foo_critical]
+cmd=$::qmondir/test/nagiosplugintest.sh critical
+
+[foo_unknown]
+cmd=$::qmondir/test/nagiosplugintest.sh unknown
 
 [foo]
 enabled=0

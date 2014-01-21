@@ -1,0 +1,6 @@
+#!/bin/sh
+QMON=/opt/qmon
+EXTRA_ARGS=
+
+$QMON/qmon.tcl $EXTRA_ARGS "$@"
+
