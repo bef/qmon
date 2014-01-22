@@ -37,8 +37,8 @@ proc parse_config {fn} {
 				check {
 					## apply defaults
 					set kv [dict merge $default_check $kv]
-					if {[dict get $kv desc] eq ""} [dict set kv desc $section]
-					if {[dict get $kv interval] eq ""} [dict set kv interval $cfg(global.default_interval)]
+					if {[dict get $kv desc] eq ""} {dict set kv desc $section}
+					if {[dict get $kv interval] eq ""} {dict set kv interval $cfg(global.default_interval)}
 					
 					## subst cmd
 					dict set kv cmd [subst -nocommands [dict get $kv cmd]]

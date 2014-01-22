@@ -73,7 +73,7 @@ proc ::ini2::parse_ini {lines} {
 	return $out
 }
 
-# foreach {section kv} [::ini2::parse_file [file dirname [info script]]/initest.ini] {
+# foreach {section kv} [::ini2::parse_file [file dirname [info script]]/../x/initest.ini] {
 # 	puts "\n\[$section\]"
 # 	foreach {k v} $kv {
 # 		puts "$k=$v"
