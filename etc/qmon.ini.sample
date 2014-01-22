@@ -39,4 +39,4 @@ cmd=$::qmondir/test/nagiosplugintest.sh unknown
 [foo]
 enabled=0
 
-## end.
+;; end.
