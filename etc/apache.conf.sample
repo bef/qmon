@@ -11,7 +11,7 @@ Alias /qmon /opt/qmon/htdocs
 
 	AllowOverride AuthConfig
 	#Order Allow,Deny
-	#Allow From 10.93.115.0/24
+	#Allow From 10.0.0.0/24
 
 	#AuthName "QMON Access"
 	#AuthType Basic
