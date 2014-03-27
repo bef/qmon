@@ -45,17 +45,3 @@ proc nagios_exec {cmd} {
 	return [list $code $status $output $perfdata]
 }
 
-# puts [nagios_exec "./test.sh warning"]
-# puts "----- nicht existent"
-# puts [nagios_exec "foo bar"]
-# 
-# foreach i {ok warning critical unknown} {
-# 	puts "----- $i"
-# 	puts [nagios_exec "./test.sh $i"]
-# }
-
-# puts [nagios_exec " /usr/lib/nagios/plugins/check_smtp -H mail.sektioneins.de -4 -v"]
-# puts [nagios_exec "/usr/lib/nagios/plugins/check_http -H localhost -v -u http://devvm/x.html"]
-
-## errors: invalid cmd, exit code, stderr output, too slow (timeout), too much output
-# fileevent?

@@ -54,22 +54,10 @@ proc parse_config {fn} {
 		}
 		
 	}
-	# ::ini::close $ini
-	
-	## check postprocessing
-	# foreach {host checks} $cfg(checks) {
-	# 	foreach check $checks {
-	# 		if {$cfg(${check}.interval) eq ""} {set cfg(${check}.interval) $cfg(global.default_interval)}
-	# 
-	# 		## subst cmd
-	# 		set cfg(${check}.cmd) [subst -nocommands $cfg(${check}.cmd)]
-	# 	}
-	# }
-	
+
 	##
 	
 	return [array get cfg]
 }
 
-# puts [parse_config [file dirname [info script]]/../x/initest.ini]
 

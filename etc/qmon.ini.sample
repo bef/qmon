@@ -39,4 +39,53 @@ cmd=$::qmondir/test/nagiosplugintest.sh unknown
 [foo]
 enabled=0
 
+#template http %HOST% %VHOST% %EXTRA%
+[%HOST%_%VHOST%_http]
+host=%HOST%
+desc=HTTP %VHOST%
+cmd=check_http -H %VHOST% -4 %EXTRA%
+#end template
+
+#template http6 %HOST% %VHOST% %EXTRA%
+[%HOST%_%VHOST%_http_ipv6]
+host=%HOST%
+desc=HTTP %VHOST% IPv6
+cmd=check_http -H %VHOST% -6 %EXTRA%
+#end template
+
+#template https %HOST% %VHOST% %EXTRA%
+[%HOST%_%VHOST%_https]
+host=%HOST%
+desc=HTTPs %VHOST%
+cmd=check_http -H %VHOST% -4 -p 443 -S --sni %EXTRA%
+#end template
+
+#template https6 %HOST% %VHOST% %EXTRA%
+[%HOST%_%VHOST%_https_ipv6]
+host=%HOST%
+desc=HTTPs %VHOST% IPv6
+cmd=check_http -H %VHOST% -6 -p 443 -S --sni %EXTRA%
+#end template
+
+#template https_cert %HOST% %VHOST% %EXTRA%
+[%HOST%_%VHOST%_cert]
+host=jungens
+desc=SSL Certificate %VHOST%
+cmd=check_http -H %VHOST% -S --sni -C 10 %EXTRA%
+interval=86400
+#end template
+
+#template http+https+cert %HOST% %VHOST% %EXTRA%
+#use http {%HOST%} {%VHOST%} {%EXTRA%}
+#use https {%HOST%} {%VHOST%} {%EXTRA%}
+#use https_cert {%HOST%} {%VHOST%} {-4 %EXTRA%}
+#end template
+
+#template http6+https6 %HOST% %VHOST% %EXTRA%
+#use http6 {%HOST%} {%VHOST%} {%EXTRA%}
+#use https6 {%HOST%} {%VHOST%} {%EXTRA%}
+#end template
+
+;#use http+https+cert jungens foo.example.com "-I $cfg(ex.ip_pub) -u /"
+
 ;; end.
