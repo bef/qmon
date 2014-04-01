@@ -27,6 +27,7 @@ if {[catch {
 	exit 1
 }
 
+source [file join $params(lib) future.tcl]
 source [file join $params(lib) nagios-parser.tcl]
 source [file join $params(lib) config-parser.tcl]
 source [file join $params(lib) sqlite-backend.tcl]
