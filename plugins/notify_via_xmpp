@@ -30,7 +30,13 @@ jid=xmpp.protocol.JID(jidparams['jid'])
 cl=xmpp.Client(jid.getDomain(),debug=[])
 
 con = cl.connect()
+if not con:
+	print "error: cannot connect"
+	sys.exit(1)
 auth = cl.auth(jid.getNode(),jidparams['password'],resource=jid.getResource())
+if not auth:
+	print "error: auth failed"
+	sys.exit(1)
 
 for tojid in sys.argv[1:]:
 	cl.send(xmpp.protocol.Message(tojid, text, typ='chat'))
