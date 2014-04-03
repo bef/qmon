@@ -1,6 +1,7 @@
 #!/bin/sh
 QMON=/opt/qmon
 EXTRA_ARGS=
+TCLSH=tclsh8.6
 
-$QMON/qmon.tcl $EXTRA_ARGS "$@"
+QMON=$QMON $TCLSH $QMON/qmon.tcl $EXTRA_ARGS "$@"
 
