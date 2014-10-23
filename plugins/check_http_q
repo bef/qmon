@@ -1,0 +1,162 @@
+#!/usr/bin/env tclsh
+
+package require Tcl 8.5
+package require cmdline
+package require http
+package require uri
+
+set options {
+	{accept.arg "" "Accept mimetypes"}
+	{proxyhost.arg "" ""}
+	{proxyport.arg "" ""}
+	{useragent.arg "check_http_q/1.0" "User-Agent"}
+	
+	{binary ""}
+	{headers.arg "" "extra headers (key value list)"}
+	{keepalive ""}
+	{method.arg "" ""}
+	{myaddr.arg "" ""}
+	{protocol.arg "1.1" "HTTP protocol version"}
+	{query.arg "" "POST query"}
+	{timeout.arg 0 "timeout in ms"}
+	{type.arg "" "Content-Type for POST requests"}
+	{validate "HEAD request"}
+	
+	{d "debug output"}
+	{critical "failed test results in CRITICAL failure instead of WARNING"}
+	{md5.arg "" "check response body against md5 checksum"}
+	{expectheaders.arg "" "match headers (kv-list) against globbing pattern"}
+	{code.arg "" "check HTTP return code"}
+}
+
+proc exit_with_result {resultstr {critical 0}} {
+	if {$critical} {
+		puts "CRITICAL: $resultstr"
+		exit 2
+	}
+	puts "WARNING: $resultstr"
+	exit 1
+}
+
+proc check_http_hash {params} {
+	array set p $params
+	
+	## split uri
+	# % uri::split "https://u:p@h:80/foo?bar=c"
+	# port 80 path foo scheme https host h query bar=c pwd p user u
+	array set uri [uri::split $p(url)]
+
+	## https?
+	if {$uri(scheme) eq "https"} {
+		package require tls
+		::http::register https 443 ::tls::socket
+	}
+
+	## http config
+	set opts {}
+	foreach opt {accept proxyhost proxyport useragent} {
+		if {$p($opt) ne ""} {lappend opts "-$opt" $p($opt)}
+	}
+	if {[llength $opts]} { ::http::config {*}$opts }
+	
+	## geturl
+	if {[catch {
+		set opts {}
+		foreach opt {binary headers keepalive method myaddr protocol query timeout type validate} {
+			if {$p($opt) ne ""} {lappend opts "-$opt" $p($opt)}
+		}
+		
+		if {$p(d)} {
+			puts "==== REQUEST ===="
+			foreach {k v} [::http::config] { puts "*** $k => $v" }
+			foreach {k v} $opts { puts "*** $k => $v" }
+		}
+		set h [::http::geturl $p(url) {*}$opts]
+	} err]} {
+		puts "CRITICAL: $err"
+		exit 2
+	}
+	
+	upvar #0 $h state
+	if {$p(d)} {
+		puts "==== RESPONSE ===="
+		foreach {k v} [array get state] { puts "*** $k => $v" }
+	}
+	
+	## error
+	if {$state(status) eq "error"} {
+		exit_with_result [::http::error] $p(critical)
+	}
+	
+	## timeout or eof
+	if {$state(status) ne "ok"} {
+		exit_with_result $state(status) $p(critical)
+	}
+
+	set resultlist {}
+	
+	## -code
+	if {$p(code) ne ""} {
+		if {![regexp {^[1-5]\d\d$} $p(code)]} {
+			puts "ERROR: -code: invalid"
+			exit 3
+		}
+		if {![regexp {^HTTP/.*? (\d\d\d)} $state(http) -> code]} {
+			lappend resultlist "invalid HTTP response"
+		} elseif {$p(code) ne $code} {
+			lappend resultlist "HTTP code mismatch (got $code, wanted $p(code))"
+		}
+	}
+	
+	## -md5
+	if {$p(md5) ne ""} {
+		package require md5
+		set sum [string tolower [::md5::md5 -hex $state(body)]]
+		if {$sum ne $p(md5)} {
+			lappend resultlist "MD5 mismatch (got $sum, wanted $p(md5))"
+		}
+	}
+	
+	## -expectheaders
+	if {$p(expectheaders) ne ""} {
+		if {[llength $p(expectheaders)] % 2 != 0} {
+			puts "ERROR: -expectheaders: odd kv-list"
+			exit 3
+		}
+		foreach {k v} $p(expectheaders) {
+			set ok 0
+			foreach {hk hv} $state(meta) {
+				if {[string compare -nocase $k $hk] != 0} { continue }
+				if {[string match -nocase $v $hv]} {
+					set ok 1
+					break
+				}
+			}
+			if {!$ok} {
+				lappend resultlist "header mismatch: $k"
+			}
+		}
+	}
+	
+	## cleanup
+	::http::cleanup $h
+	
+	## result + exit
+	if {[llength $resultlist] == 0} { return }
+	set resultstr [join $resultlist "; "]
+	exit_with_result $resultstr $p(critical)
+}
+
+set usage "- check HTTP (qmon)\n$::argv0 \[options] <URL>\noptions:"
+if {[catch {
+	set params [::cmdline::getoptions argv $options $usage]
+	if {[llength $argv] != 1} { error "too few/many arguments" }
+	lappend params url [lindex $argv 0]
+	check_http_hash $params
+} err]} {
+	puts "ERROR: $err"
+	exit 3
+}
+
+puts "OK"
+exit 0
