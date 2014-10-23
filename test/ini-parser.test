@@ -1,0 +1,157 @@
+package require tcltest 2
+namespace import ::tcltest::test
+
+set here [file dirname [file normalize [info script]]]
+set libdir [file join $here .. lib]
+
+source [file join $libdir ini-parser.tcl]
+
+##
+## parse_ini
+##
+
+test ip-pi-sections "ini2::parse_ini sections" -body {
+	::ini2::parse_ini [split {
+[SectionA]
+[SectionB]
+} "\n"]
+} -result {SectionA {} SectionB {}}
+
+
+test ip-pi-sections-entries "ini2::parse_ini sections + entries" -body {
+	::ini2::parse_ini [split {
+[SectionA]
+a=1
+b=2
+[SectionB]
+c=3
+dee=444
+} "\n"]
+} -result {SectionA {a 1 b 2} SectionB {c 3 dee 444}}
+
+
+test ip-pi-global "ini2::parse_ini global section" -body {
+	::ini2::parse_ini [split {
+a=1
+b
+c=3
+} "\n"]
+} -result {global {a 1 b {} c 3}}
+
+
+test ip-pi-comments "ini2::parse_ini comments + empty lines" -body {
+	::ini2::parse_ini [split {
+		
+		; comment
+} "\n"]
+} -result {}
+
+
+##
+## macroprocessor
+##
+
+
+test ip-macro-1 "ini2::macroprocessor template without parameters" -body {
+	set result [::ini2::macroprocessor [split {
+#template foo
+test
+#end template
+#use foo
+} "\n"]]
+	join $result "\n"
+} -result "\ntest\n"
+
+
+test ip-macro-2 "ini2::macroprocessor template with parameters" -body {
+	set result [::ini2::macroprocessor [split {
+#template X %COLOR% %ANIMAL1% %ANIMAL2%
+the quick %COLOR% %ANIMAL1% jumps over the lazy %ANIMAL2%
+#end template
+#use X brown fox dog
+} "\n"]]
+	join $result "\n"
+} -result "\nthe quick brown fox jumps over the lazy dog\n"
+
+
+test ip-macro-3 "ini2::macroprocessor template with parameters with spaces" -body {
+	set result [::ini2::macroprocessor [split {
+#template X %COLOR% %ANIMAL1% %ANIMAL2%
+the quick %COLOR% %ANIMAL1% jumps over the lazy %ANIMAL2%
+#end template
+#use X "brown yellow" "fox 1" "dog 2"
+} "\n"]]
+	join $result "\n"
+} -result "\nthe quick brown yellow fox 1 jumps over the lazy dog 2\n"
+
+
+test ip-macro-4 "ini2::macroprocessor use within template" -body {
+	set result [::ini2::macroprocessor [split {
+#template A %1% %2%
+#use B {%1%} {%2%}
+#end template
+
+#template B %1% %2%
+arg1=%1%
+arg2=%2%
+#end template
+
+[B]
+#use B {1 2 -e "foo"} 3 4
+[A]
+#use A {1 2 -e "foo"} 3 4
+} "\n"]]
+	join $result "\n"
+} -result {
+
+
+[B]
+arg1=1 2 -e "foo"
+arg2=3
+[A]
+arg1=1 2 -e "foo"
+arg2=3
+}
+
+
+test ip-macro-5 "ini2::macroprocessor use within template without {}" -body {
+	set result [::ini2::macroprocessor [split {
+#template A %1% %2%
+#use B %1% %2%
+#end template
+
+#template B %1% %2%
+arg1=%1%
+arg2=%2%
+#end template
+
+[B]
+#use B {1 2 -e "foo"} 3 4
+[A]
+#use A {1 2 -e "foo"} 3 4
+} "\n"]]
+	join $result "\n"
+} -result {
+
+
+[B]
+arg1=1 2 -e "foo"
+arg2=3
+[A]
+arg1=1
+arg2=2
+}
+
+
+test ip-macro-missing-end "ini2::macroprocessor template without #end" -body {
+	set result [::ini2::macroprocessor [split {
+#template foo
+test
+} "\n"]]
+	join $result "\n"
+} -returnCodes {error} -result {template 'foo' never ends}
+
+
+test ip-macro-unknown-template "ini2::macroprocessor unknown template" -body {
+	::ini2::macroprocessor [split {#use foo} "\n"]
+} -returnCodes {error} -result {unknown template 'foo'}

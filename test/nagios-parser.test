@@ -1,0 +1,43 @@
+package require tcltest 2
+namespace import ::tcltest::test
+
+set here [file dirname [file normalize [info script]]]
+set libdir [file join $here .. lib]
+set testscript [file join $here "nagiosplugintest.sh"]
+
+source [file join $libdir nagios-parser.tcl]
+
+test np-exit-0 "nagios-parser returns ok" -body {
+	lassign [nagios_exec "$testscript ok"] code status output perfdata
+	puts -nonewline $output
+	return "$code | $status"
+} -result {0 | ok} -output "OK\n"
+
+test np-exit-1 "nagios-parser returns warning" -body {
+	lassign [nagios_exec "$testscript warning"] code status output perfdata
+	puts -nonewline $output
+	return "$code | $status"
+} -result {1 | warning} -output "WARNING\n"
+
+test np-exit-2 "nagios-parser returns critical" -body {
+	lassign [nagios_exec "$testscript critical"] code status output perfdata
+	puts -nonewline $output
+	return "$code | $status"
+} -result {2 | critical} -output "CRITICAL\n"
+
+test np-exit-3 "nagios-parser returns unknown" -body {
+	lassign [nagios_exec "$testscript unknown"] code status output perfdata
+	puts -nonewline $output
+	return "$code | $status"
+} -result {3 | unknown} -output "UNKNOWN\n"
+
+test np-invalid-file "nagios-parser gets invalid file" -body {
+	lassign [nagios_exec "[file join $here foo] unknown"] code status output perfdata
+	return "$code | $status"
+} -result {3 | unknown}
+
+test np-perfdata "nagios-parser gets perfdata" -body {
+	lassign [nagios_exec "$testscript perfdata"] code status output perfdata
+	return $perfdata
+} -result {foo:13 bar:14}
+

@@ -1,0 +1,48 @@
+package require tcltest 2
+namespace import ::tcltest::test
+
+set here [file dirname [file normalize [info script]]]
+set libdir [file join $here .. lib]
+
+source [file join $libdir ini-parser.tcl]
+source [file join $libdir config-parser.tcl]
+
+# proc 
+test cp-1 "parse_config empty" -body {
+	set cfg [parse_config_string {}]
+	dict get $cfg checks
+} -result {}
+
+test cp-2 "parse_config global var" -body {
+	set cfg [parse_config_string {
+foo=bar
+}]
+	dict get $cfg "global.foo"
+} -result {bar}
+
+test cp-3 "parse_config host" -body {
+	set cfg [parse_config_string {
+[machine1]
+type=host
+
+}]
+	dict get $cfg "checks"
+} -result {machine1 {}}
+
+test cp-4 "parse_config unknown checks" -body {
+	set cfg [parse_config_string {
+[check1]
+[check2]
+}]
+	dict get $cfg "checks"
+} -result {unknown {check1 check2}}
+
+test cp-5 "parse_config cmd subst" -body {
+	set cfg [parse_config_string {
+foo=bar
+[check1]
+cmd=test $cfg(global.foo)
+}]
+	dict get $cfg "check1.cmd"
+} -result {test bar}
+

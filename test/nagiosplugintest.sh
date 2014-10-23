@@ -18,4 +18,10 @@ case $1 in
 	unknown)
 	echo "UNKNOWN"
 	exit 3
+	;;
+	
+	perfdata)
+	echo "OK | foo:13 bar:14"
+	exit 0
+	;;
 esac
