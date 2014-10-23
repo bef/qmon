@@ -1,6 +1,14 @@
 source [file join [file dirname [info script]] ini-parser.tcl]
 
 proc parse_config {fn} {
+	return [parse_config_data [::ini2::parse_file $fn]]
+}
+
+proc parse_config_string {str} {
+	return [parse_config_data [::ini2::parse_string $str]]
+}
+
+proc parse_config_data {data} {
 	array set cfg {
 		global.plugin_path {}
 		global.default_interval 3600
@@ -18,7 +26,7 @@ proc parse_config {fn} {
 		desc ""
 	}
 	
-	foreach {section kv} [::ini2::parse_file $fn] {
+	foreach {section kv} $data {
 		if {$section ne "global"} {
 			## no type? -> type=check
 			if {![dict exists $kv type]} {

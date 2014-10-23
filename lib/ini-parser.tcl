@@ -9,6 +9,12 @@ proc ::ini2::parse_file {fn} {
 	return [parse_ini $lines]
 }
 
+proc ::ini2::parse_string {str} {
+	set lines [split $str "\n"]
+	set lines [macroprocessor $lines]
+	return [parse_ini $lines]
+}
+
 ## substitute templates
 proc ::ini2::macroprocessor {lines} {
 	array set tmpl {}
@@ -48,6 +54,9 @@ proc ::ini2::macroprocessor {lines} {
 			lappend $mode $line
 		}
 		if {$usecnt} {set lines $out}
+		if {$mode ne "out"} {
+			return -code error "template '$template_name' never ends"
+		}
 	}
 	return $out
 }
