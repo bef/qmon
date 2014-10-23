@@ -8,10 +8,10 @@ package require inifile
 
 set options [list \
 	[list ini.arg "[file dirname [info script]]/../etc/check_netstat.ini" "config file"] \
-	{v 0 "verbose output"}
+	{v "verbose output"}
 ]
 
-set usage "- detect unknown listening udp/tcp sockets\n::argv0 \[options]\noptions:"
+set usage "- detect unknown listening udp/tcp sockets\n$::argv0 \[options]\noptions:"
 if {[catch {
 	array set params [::cmdline::getoptions argv $options $usage]
 } err]} {
