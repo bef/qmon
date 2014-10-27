@@ -133,6 +133,22 @@ switch -glob -- [lindex $argv 0] {
 		db close
 	}
 	
+	jsonstatus {
+		package require json::write
+		set result {}
+		init_db $params(db)
+		db eval {SELECT * FROM checks WHERE enabled ORDER BY host, name} c {
+			set entry {}
+			foreach k $c(*) {
+				set v [json::write string $c($k)]
+				lappend entry $k $v
+			}
+			lappend result [json::write object {*}$entry]
+		}
+		db close
+		puts [json::write array {*}$result]
+	}
+	
 	default {
 		puts "? :(\ntry $::argv0 -h"
 		exit 1
