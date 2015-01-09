@@ -1,0 +1,92 @@
+#!/usr/bin/env tclsh
+
+package require Tcl 8.6
+package require cmdline
+package require uuid
+
+set options {
+	{addr.arg "" "server address"}
+	{port.arg "25" "server port"}
+	{helo.arg "foo" "HELO"}
+	{to.arg "foo@example.com" "valid TO"}
+}
+lappend options [list from.arg "[uuid::uuid generate]@example.com" "FROM (random for greylist check)"]
+
+proc returnunless {pattern str} {
+	if {![string match $pattern $str]} {
+		return -code return [list WARNING "wanted $pattern but got $str"]
+	}
+}
+
+proc check_greylisting {addr port helo from to} {
+	try {
+		set s [socket $addr $port]
+		fconfigure $s -buffering line -translation crlf
+		returnunless {220*} [gets $s]
+		
+		puts $s "HELO $helo"
+		returnunless {250*} [gets $s]
+
+		puts $s "MAIL FROM:<$from>"
+		returnunless {250*} [gets $s]
+
+		puts $s "RCPT TO:<$to>"
+		returnunless {450*Recipient address rejected: Greylisted*} [gets $s]
+
+		puts $s "QUIT"
+		return OK
+	} finally {
+		close $s
+	}
+}
+
+proc check_openrelay {addr port helo from to} {
+	try {
+		set s [socket $addr $port]
+		fconfigure $s -buffering line -translation crlf
+		returnunless {220*} [gets $s]
+		
+		puts $s "HELO $helo"
+		returnunless {250*} [gets $s]
+
+		puts $s "MAIL FROM:<$from>"
+		returnunless {250*} [gets $s]
+
+		puts $s "RCPT TO:<$to>"
+		returnunless {554*Relay access denied} [gets $s]
+
+		puts $s "QUIT"
+		return OK
+	} finally {
+		close $s
+	}
+}
+
+
+set usage "- check MX\n$::argv0 \[options] <greylisting|openrelay>\noptions:"
+if {[catch {
+	array set params [::cmdline::getoptions argv $options $usage]
+	if {[llength $argv] != 1} { error "too few/many arguments" }
+	lassign $argv check
+	switch $check {
+		greylisting {
+			set result [check_greylisting $params(addr) $params(port) $params(helo) $params(from) $params(to)]
+		}
+		openrelay {
+			set result [check_openrelay $params(addr) $params(port) $params(helo) $params(from) $params(to)]
+		}
+		default {
+			set result {ERROR "$check ?"}
+		}
+	}
+} err]} {
+	set result [list ERROR $err]
+}
+
+lassign $result state msg
+switch $state {
+	OK { puts "OK"; return 0}
+	WARNING { puts "$state: $msg"; return 1 }
+	CRITICAL { puts "$state: $msg"; return 2 }
+	default { puts "ERROR: $msg"; return 3 }
+}
