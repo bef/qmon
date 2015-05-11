@@ -49,6 +49,8 @@ if {$params(d)} {
 
 ## prepare and execute HTTP request
 set url {https://api.pushover.net/1/messages.json}
+
+::tls::init -tls1 true -ssl2 false -ssl3 false
 ::http::register https 443 ::tls::socket
 ::http::config -useragent "QMON Notifier"
 
