@@ -1,0 +1,68 @@
+#!/usr/bin/env tclsh
+
+package require Tcl 8.6
+package require cmdline
+package require http
+package require tls
+package require inifile
+
+set ini_section "notify_via_pushover"
+
+## parse command line
+set options [list \
+	[list ini.arg "[file dirname [info script]]/../etc/notify_via_pushover.ini" "config file"] \
+	{d "debug output"} \
+	{m.arg "" "message"} \
+	{bs "do backslash substitution, e.g. send return instead of \\n"}
+]
+
+set usage "- notify via pushover.net\n$::argv0 \[options]\noptions:"
+if {[catch {
+	array set params [::cmdline::getoptions argv $options $usage]
+	if {$params(m) eq ""} { return -code error "message is empty"}
+} err]} {
+	puts $err
+	exit 1
+}
+
+
+## parse config file
+set ini [::ini::open $params(ini) r]
+if {![::ini::exists $ini $ini_section]} {
+	puts "ERROR: section \[$ini_section\] missing in $params(ini)"
+	exit 1
+}
+foreach key {api_token user_token} {
+	if {![::ini::exists $ini $ini_section $key]} {
+		puts "ERROR: key missing: $key in \[$ini_section\] in $params(ini)"
+		exit 1
+	}
+	set $key [::ini::value $ini $ini_section $key]
+}
+::ini::close $ini
+
+if {$params(d)} {
+	puts "api_token: $api_token"
+	puts "user_token: $user_token"
+}
+
+
+## prepare and execute HTTP request
+set url {https://api.pushover.net/1/messages.json}
+::http::register https 443 ::tls::socket
+::http::config -useragent "QMON Notifier"
+
+if {$params(bs)} {
+	set params(m) [subst -nocommands -novariables $params(m)]
+}
+
+set query [::http::formatQuery token $api_token user $user_token message $params(m)]
+set token [::http::geturl $url -method POST -query $query -timeout 10000]
+
+if {$params(d)} {
+	puts [::http::status $token]
+	puts [::http::code $token]
+	puts [::http::data $token]
+}
+
+::http::cleanup $token
