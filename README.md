@@ -26,7 +26,7 @@ Required packages:
 
 Example package installation with Debian/Ubuntu:
 
-	# apt-get install tcl8.6 tcllib libsqlite3-tcl
+	# apt-get install tcl8.6 tcllib libsqlite3-tcl tcl-tls
 	# apt-get install nagios-plugins-standard nagios-plugins-contrib
 
 	# apt-get install python-xmpp
