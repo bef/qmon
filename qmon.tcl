@@ -7,7 +7,7 @@
 set qmondir [file dirname [info script]]
 if {[info exists env(QMON)]} {set qmondir $env(QMON)}
 
-set qmon_version "0.1dev"
+set qmon_version "0.1dev2"
 
 ## parse command line arguments
 package require cmdline
