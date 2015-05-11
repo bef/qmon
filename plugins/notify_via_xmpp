@@ -21,7 +21,7 @@ configfilename = os.path.join(os.path.dirname(sys.argv[0]), '..', 'etc', 'notify
 config.read(configfilename)
 
 jidparams = {}
-for k, v in config.items('jidparams'):
+for k, v in config.items('notify_via_xmpp'):
 	jidparams[k] = v
 
 ##
