@@ -1,4 +1,8 @@
 #!/usr/bin/env tclsh
+##
+## QMON notification plugin for pushover.net
+## see https://pushover.net/api for API documentation
+##
 
 package require Tcl 8.6
 package require cmdline
@@ -10,16 +14,39 @@ set ini_section "notify_via_pushover"
 
 ## parse command line
 set options [list \
-	[list ini.arg "[file dirname [info script]]/../etc/notify_via_pushover.ini" "config file"] \
-	{d "debug output"} \
-	{m.arg "" "message"} \
-	{bs "do backslash substitution, e.g. send return instead of \\n"}
-]
+	[list ini.arg "[file dirname [info script]]/../etc/notify_via_pushover.ini" "config file"]]
+lappend options {*}{
+	{noini "don't parse ini file -> must specify apitoken + usertoken"}
+	{api_token.arg "" "specify API token; overrides ini value"}
+	{user_token.arg "" "specify user/group token; overrides ini value"}
+	{d.secret "debug output"}
+	{m.arg "" "(required) message"}
+	{bs "do backslash substitution for message, e.g. send return instead of \\n"}
+	{device.arg "" "(optional) user's device name"}
+	{title.arg "" "(optional) message title"}
+	{url.arg "" "(optional) URL for message"}
+	{url_title.arg "" "(optional) URL title for message"}
+	{priority.arg "" "(optional) message priority: -2 no alert; -1 quiet; 1 high prio; 2 confirm"}
+	{retry.arg "" "(only with priority=2) retry every X seconds; min. 30"}
+	{expire.arg "" "(only with priority=2) retry so many seconds, e.g. 3600; max. 86400"}
+	{callback.arg "" "(only with priority=2) callback URL"}
+	{timestamp.arg "" "(optional) message timestamp"}
+	{sound.arg "" "(optional) alert sound"}
+	{status.arg "" "warning -> priority=1; critical -> priority=2 + retry=600 + expire=7200"}
+}
 
 set usage "- notify via pushover.net\n$::argv0 \[options]\noptions:"
 if {[catch {
 	array set params [::cmdline::getoptions argv $options $usage]
-	if {$params(m) eq ""} { return -code error "message is empty"}
+	if {$params(m) eq ""} { return -code error "message is empty" }
+	switch -exact -- $params(status) {
+		warning { set params(priority) 1 }
+		critical {
+			set params(priority) 2
+			set params(retry) 600
+			set params(expire) 7200
+		}
+	}
 } err]} {
 	puts $err
 	exit 1
@@ -27,20 +54,30 @@ if {[catch {
 
 
 ## parse config file
-set ini [::ini::open $params(ini) r]
-if {![::ini::exists $ini $ini_section]} {
-	puts "ERROR: section \[$ini_section\] missing in $params(ini)"
-	exit 1
-}
-foreach key {api_token user_token} {
-	if {![::ini::exists $ini $ini_section $key]} {
-		puts "ERROR: key missing: $key in \[$ini_section\] in $params(ini)"
+if {$params(ini) ne "" && !$params(noini)} {
+	set ini [::ini::open $params(ini) r]
+	if {![::ini::exists $ini $ini_section]} {
+		puts "ERROR: section \[$ini_section\] missing in $params(ini)"
 		exit 1
 	}
-	set $key [::ini::value $ini $ini_section $key]
+	foreach key {api_token user_token} {
+		if {![::ini::exists $ini $ini_section $key]} {
+			puts "ERROR: key missing: $key in \[$ini_section\] in $params(ini)"
+			exit 1
+		}
+		set $key [::ini::value $ini $ini_section $key]
+	}
+	::ini::close $ini
 }
-::ini::close $ini
 
+## set api token / user token
+foreach key {api_token user_token} {
+	if {$params($key) ne ""} { set $key $params($key) }
+	if {![info exists $key]} {
+		puts "ERROR: $key not specified"
+		exit 1
+	}
+}
 if {$params(d)} {
 	puts "api_token: $api_token"
 	puts "user_token: $user_token"
@@ -58,7 +95,12 @@ if {$params(bs)} {
 	set params(m) [subst -nocommands -novariables $params(m)]
 }
 
-set query [::http::formatQuery token $api_token user $user_token message $params(m)]
+set queryargs [list token $api_token user $user_token message $params(m)]
+foreach key {device title url url_title priority retry expire callback timestamp sound} {
+	if {$params($key) ne ""} { lappend queryargs $key $params($key) }
+}
+
+set query [::http::formatQuery {*}$queryargs]
 set token [::http::geturl $url -method POST -query $query -timeout 10000]
 
 if {$params(d)} {

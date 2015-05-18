@@ -2,7 +2,7 @@
 plugin_path=/opt/qmon/plugins /usr/lib/nagios/plugins
 default_interval=3600
 ;notify_cmd=echo -e "$name is now $status2 (was $status)" | ${::qmondir}/plugins/notify_via_xmpp user1@jabber.example.com user2@jabber.example.com
-;notify_cmd=${::qmondir}/plugins/notify_via_pushover -m "$name is now $status2 (was $status)"
+;notify_cmd=${::qmondir}/plugins/notify_via_pushover -m "$name is now $status2 (was $status)" -status "$status2"
 
 [tohu]
 type=host
