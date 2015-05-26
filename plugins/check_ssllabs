@@ -55,7 +55,7 @@ proc run_check {} {
 		if {![dict exists $result status]} { return -code error "unknown result without status" }
 		set status [dict get $result status]
 		if {$status eq "DNS" || $status eq "IN_PROGRESS"} {
-			after 15000
+			after 20000
 		} else { break } 
 	}
 	
