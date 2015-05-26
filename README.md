@@ -1,7 +1,7 @@
 qmon - Q Monitoring App
 =======================
 
-![alt tag](https://raw.githubusercontent.com/bef/qmon/master/logo/qmon-logo-269.png)
+![alt tag](https://raw.githubusercontent.com/bef/qmon/master/logo/qmon-logo-269-flat.png)
 
 About
 -----
