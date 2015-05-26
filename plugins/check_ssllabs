@@ -1,0 +1,119 @@
+#!/usr/bin/env tclsh
+##
+## check (your own) site with ssllabs.com
+## https://github.com/ssllabs/ssllabs-scan/blob/master/ssllabs-api-docs.md
+##
+
+package require Tcl 8.6
+package require cmdline
+package require http
+package require tls
+package require json
+
+## globals
+set api_url {https://api.ssllabs.com/api/v2/analyze}
+
+
+## procs
+proc check_api {} {
+	global api_url
+	global params
+	
+	set queryargs [list host $params(h) fromCache on maxAge 1]
+	set query [::http::formatQuery {*}$queryargs]
+	# puts $query
+	# exit 1
+	set token [::http::geturl "${api_url}?$query" -timeout 10000]
+
+	if {$params(d)} {
+		puts [::http::status $token]
+		puts [::http::code $token]
+		puts [::http::data $token]
+	}
+
+	if {[::http::status $token] ne "ok"} {
+		return -code error "HTTP error. something went wrong."
+	}
+	set data [::http::data $token]
+	set code [::http::ncode $token]
+	
+	::http::cleanup $token
+	
+	if {$code ne "200"} {
+		return -code error "API call failed with code $code."
+	}
+	if {$data eq ""} {
+		return -code error "empty HTTP response. something went wrong."
+	}
+	
+	return [::json::json2dict $data]
+}
+
+proc run_check {} {
+	for {set i 0} {$i < 10} {incr i} {
+		set result [check_api]
+		if {![dict exists $result status]} { return -code error "unknown result without status" }
+		set status [dict get $result status]
+		if {$status eq "DNS" || $status eq "IN_PROGRESS"} {
+			after 15000
+		} else { break } 
+	}
+	
+	if {$status eq "ERROR"} {
+		puts "WARNING - API returned with ERROR"
+		exit 1
+	}
+	if {$status eq "READY"} {
+		if {![dict exists $result endpoints]} {
+			puts "CRITICAL - API returned successfully, but without endpoints."
+			exit 2
+		}
+		foreach endpoint [dict get $result endpoints] {
+			if {![dict exists $endpoint grade]} {
+				set grade "no grade"
+			} else {
+				set grade [dict get $endpoint grade]
+			}
+			if {$grade ne $::params(g)} {
+				puts "CRITICAL - API graded '$grade' instead of '$::params(g)'"
+				return 2
+			}
+		}
+		puts "OK - grade $grade"
+		exit 0
+	}
+	
+	## timeout
+	return -code error "API took too long."
+}
+
+## cmdline
+set options {
+	{d.secret "debug output"}
+	{h.arg "" "hostname"}
+	{g.arg "A+" "expected grade"}
+}
+
+set usage "- ssllabs.com API client\n$::argv0 \[options]\noptions:"
+if {[catch {
+	array set params [::cmdline::getoptions argv $options $usage]
+	if {$params(h) eq ""} { return -code error "ERROR: parameter h is required" }
+} err]} {
+	puts $err
+	exit 3
+}
+
+##
+
+
+## init TLS
+::tls::init -tls1 true -ssl2 false -ssl3 false
+::http::register https 443 ::tls::socket
+::http::config -useragent "QMON"
+
+if {[catch {
+	run_check
+} err]} {
+	puts $err
+	exit 3
+}
