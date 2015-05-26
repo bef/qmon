@@ -1,3 +1,5 @@
+![alt tag](https://raw.githubusercontent.com/bef/qmon/master/logo/qmon-logo-72.png)
+
 qmon - Q Monitoring App
 =======================
 
