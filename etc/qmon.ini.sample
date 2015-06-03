@@ -18,7 +18,7 @@ desc=example.com
 type=check
 host=ex
 desc=SSH
-cmd=check_ssh -H $cfg(na.hostname) -4
+cmd=check_ssh -H $cfg(ex.hostname) -4
 ; enabled=0
 
 [ex_https]

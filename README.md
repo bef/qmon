@@ -138,7 +138,7 @@ Example:
 	type=check
 	host=ex
 	desc=SSH
-	cmd=check_ssh -H $cfg(na.hostname) -4
+	cmd=check_ssh -H $cfg(ex.hostname) -4
 	; enabled=0
 
 The ini-parser comes with a simple, yet powerful macro processor. This is useful for reusing snippets in a way functions or procedures work with programming languages. Example:
