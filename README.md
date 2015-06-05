@@ -5,14 +5,14 @@ qmon - Q Monitoring App
 
 About
 -----
-qmon is a simple monitoring application suitable for a small number of hosts and services. It aims to be a quick and secure alternative to nagios with focus on simplicity.
+qmon is a monitoring application suitable for a small number of hosts and services. It aims to be a quick and secure alternative to nagios with focus on security and simplicity.
 
 Features:
 
 * Simple INI-style configuration file
 * Powerful macro processor for similar configuration entries
 * Nagios-compatibility: Check scripts from the nagios or icinga package can be used with qmon. Multiline output is not supported though.
-* Notification by XMPP
+* Notification via XMPP and others
 * CGI-based web frontend
 
 
