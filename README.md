@@ -146,11 +146,11 @@ The ini-parser comes with a simple, yet powerful macro processor. This is useful
 	#template X %COLOR% %ANIMAL1% %ANIMAL2%
 	the quick %COLOR% %ANIMAL1% jumps over the lazy %ANIMAL2%
 	#end template
-	#use X brow fox dog
+	#use X brown fox dog
 	
 This would result in
 
-	the quick brow fox jumps over the lazy dog
+	the quick brown fox jumps over the lazy dog
 
 Template arguments can be any word with or without special characters, e.g. %COLOR%, $color, C, but the %%-syntax avoids accidental substitutions.
 
