@@ -11,7 +11,10 @@ proc parse_config_string {str} {
 proc parse_config_data {data} {
 	array set cfg {
 		global.plugin_path {}
-		global.default_interval 3600
+		global.interval 3600
+		global.interval_warning 1800
+		global.interval_critical 600
+		global.interval_unknown 1800
 		checks {}
 	}
 	set default_check {
@@ -19,7 +22,10 @@ proc parse_config_data {data} {
 		desc ""
 		enabled 1
 		cmd {}
-		interval ""
+		interval "$cfg(global.interval)"
+		interval_warning "$cfg(global.interval_warning)"
+		interval_critical "$cfg(global.interval_critical)"
+		interval_unknown "$cfg(global.interval_unknown)"
 		type check
 	}
 	set default_host {
@@ -27,6 +33,8 @@ proc parse_config_data {data} {
 	}
 	
 	foreach {section kv} $data {
+		set add_check_trigger 0
+		
 		if {$section ne "global"} {
 			## no type? -> type=check
 			if {![dict exists $kv type]} {
@@ -40,25 +48,38 @@ proc parse_config_data {data} {
 					
 					## create empty check list for host
 					if {![dict exists $cfg(checks) $section]} {dict set cfg(checks) $section {}}
+					
 				}
 
 				check {
 					## apply defaults
 					set kv [dict merge $default_check $kv]
 					if {[dict get $kv desc] eq ""} {dict set kv desc $section}
-					if {[dict get $kv interval] eq ""} {dict set kv interval $cfg(global.default_interval)}
 					
-					## subst cmd
-					dict set kv cmd [subst -nocommands [dict get $kv cmd]]
+					## add check to check list of checks later (after subst)
+					set add_check_trigger 1
 					
-					## add check to list of checks by host
-					dict lappend cfg(checks) [dict get $kv host] $section
 				}
 				default {return -code error "section $section's type is incorrect"}
 			}
 		}
+		
 		foreach {k v} $kv {
-			set cfg(${section}.$k) $v
+			if {[string index $v 0] eq "!"} {
+				## no substitution for key=!value
+				set cfg(${section}.$k) [string range $v 1 end]
+				continue
+			}
+			## substitute all other values
+			set cfg(${section}.$k) [subst -nocommands $v]
+		}
+		
+		if {$add_check_trigger} {
+			## create empty check list for host
+			if {![dict exists $cfg(checks) $cfg(${section}.host)]} {dict set cfg(checks) $cfg(${section}.host) {}}
+			
+			## add check to list of checks by host
+			dict lappend cfg(checks) $cfg(${section}.host) $section
 		}
 		
 	}
@@ -67,5 +88,3 @@ proc parse_config_data {data} {
 	
 	return [array get cfg]
 }
-
-

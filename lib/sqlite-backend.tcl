@@ -21,23 +21,25 @@ proc create_db {} {
 			status TEXT,
 			output TEXT,
 			perfdata TEXT,
-			last_check NUMERIC
+			last_check NUMERIC,
+			interval_warning NUMERIC,
+			interval_critical NUMERIC,
+			interval_unknown NUMERIC
 		);
 	}
 }
 
-proc update_check {check cmd interval enabled host desc} {
-	if {[db exists {SELECT 1 FROM checks WHERE name = :check}]} {
-		db eval {
-			UPDATE checks
-				SET cmd = :cmd, interval = :interval, enabled = :enabled, host = :host, desc = :desc
-				WHERE name = :check
-		}
+proc update_check {args} {
+	set columns {name cmd interval interval_warning interval_critical interval_unknown enabled host desc}
+	foreach {k v} $args { set $k $v }
+	
+	if {[db exists {SELECT 1 FROM checks WHERE name = :name}]} {
+		set setkv {}
+		foreach c [lrange $columns 1 end] { lappend setkv "$c = :$c" }
+		db eval "UPDATE checks SET [join $setkv ", "] WHERE name = :name"
 	} else {
-		db eval {
-			INSERT INTO checks (name, cmd, interval, enabled, host, desc, status)
-				VALUES (:check, :cmd, :interval, :enabled, :host, :desc, 'new')
-		}
+		set vlist [lmap v $columns {set _ ":$v"}]
+		db eval "INSERT INTO checks ([join $columns ", "], status) VALUES ([join $vlist ", "], 'new')"
 	}
 }
 
@@ -55,7 +57,13 @@ proc get_checks_for_execution {{force 0} {testlist {}}} {
 			FROM checks
 			WHERE enabled}
 	if {!$force} {
-		append sql { AND (last_check IS NULL OR strftime('%s', 'now') - strftime('%s', last_check) >= interval)}
+		set timediff {(strftime('%s', 'now') - strftime('%s', last_check))}
+		append sql " AND (last_check IS NULL "
+		append sql "   OR (status = 'critical' AND $timediff >= interval_critical)"
+		append sql "   OR (status = 'warning' AND $timediff >= interval_warning)"
+		append sql "   OR (status = 'unknown' AND $timediff >= interval_unknown)"
+		append sql "   OR (status <> 'critical' AND status <> 'warning' AND status <> 'unknown' AND $timediff >= interval)"
+		append sql ")"
 	}
 	if {$testlist ne ""} {
 		set i 0

@@ -1,6 +1,12 @@
 [global]
+;; search for plugins in directories (separated by space)
 plugin_path=/opt/qmon/plugins /usr/lib/nagios/plugins
-default_interval=3600
+
+;; default intervals
+interval=3600
+interval_warning=1800
+interval_critical=600
+interval_unknown=1800
 ;notify_cmd=echo -e "$name is now $status2 (was $status)" | ${::qmondir}/plugins/notify_via_xmpp user1@jabber.example.com user2@jabber.example.com
 ;notify_cmd=${::qmondir}/plugins/notify_via_pushover -m "$name is now $status2 (was $status)" -status "$status2"
 

@@ -9,7 +9,7 @@ package require Tcl 8.5
 set qmondir [file dirname [info script]]
 if {[info exists env(QMON)]} {set qmondir $env(QMON)}
 
-set qmon_version "0.1dev2"
+set qmon_version "0.1dev3"
 
 ## parse command line arguments
 package require cmdline
@@ -20,6 +20,7 @@ set options [list \
 	{t "test mode. print checks, but do not execute. only relevant for cmd 'check'"} \
 	{f "force check now. only relevant for cmd 'check'"} \
 	{nc "no color output. for 'status'"} \
+	{v "verbose output"} \
 	]
 set usage "v$::qmon_version - by BeF <bef@pentaphase.de>\n$::argv0 \[options] <showconfig|update|check|status>\noptions:"
 if {[catch {
@@ -77,7 +78,11 @@ switch -glob -- [lindex $argv 0] {
 		## create/update all other checks
 		foreach {host checks} $cfg(checks) {
 			foreach check $checks {
-				update_check $check $::cfg(${check}.cmd) $::cfg(${check}.interval) $::cfg(${check}.enabled) $::cfg(${check}.host) $::cfg(${check}.desc)
+				set update_args [list name $check]
+				foreach k {cmd interval interval_warning interval_critical interval_unknown enabled host desc} {
+					lappend update_args $k $::cfg(${check}.$k)
+				}
+				update_check {*}$update_args
 			}
 		}
 		
@@ -98,14 +103,17 @@ switch -glob -- [lindex $argv 0] {
 					}
 				}
 			}
-			if {$params(t)} {
+			if {$params(t) || $params(v)} {
 				## test mode.
 				puts "$name: $cmd"
-				continue
+				if {$params(t)} {continue}
 			}
 			
 			set ret [nagios_exec $cmd]
 			lassign $ret code status2 output perfdata
+			if {$params(v)} {
+				puts "$name: \[$status2\] $output | $perfdata"
+			}
 			update_result $name $status2 $output $perfdata
 			
 			if {$status ne $status2 && [info exists cfg(global.notify_cmd)]} {
@@ -118,7 +126,7 @@ switch -glob -- [lindex $argv 0] {
 	}
 	
 	status {
-		array set color {}
+		array set color {ok "" warning "" critical "" unknown "" new "" default ""}
 		if {!$params(nc)} {
 			## color output
 			package require term::ansi::code::ctrl
