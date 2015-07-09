@@ -1,8 +1,10 @@
-#!/usr/bin/env tclsh8.6
+#!/usr/bin/env tclsh
 ##
 ## quick monitoring script
 ##   BeF <bef@pentaphase.de> - 2014-01-15
 ##
+
+package require Tcl 8.5
 
 set qmondir [file dirname [info script]]
 if {[info exists env(QMON)]} {set qmondir $env(QMON)}
@@ -88,7 +90,7 @@ switch -glob -- [lindex $argv 0] {
 		foreach {name cmd status} [get_checks_for_execution $params(f) $testlist] {
 			if {[string index $cmd 0] ne "/"} {
 				set cmd1 [lindex [split $cmd " "] 0]
-			
+				
 				foreach path $::cfg(global.plugin_path) {
 					if {[file executable "$path/$cmd1"] && ![file isdirectory "$path/$cmd1"]} {
 						set cmd "$path/$cmd"
@@ -154,5 +156,3 @@ switch -glob -- [lindex $argv 0] {
 		exit 1
 	}
 }
-
-

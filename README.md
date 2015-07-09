@@ -49,7 +49,7 @@ Create dedicated qmon user and group:
 	# useradd -g qmon -d /var/run/qmon qmon
 	# mkdir -p /var/run/qmon
 	# chown qmon:qmon /var/run/qmon
-	
+
 In /opt clone qmon from github:
 
 	# cd /opt
@@ -86,7 +86,7 @@ Go live: Edit crontab:
 
 	# crontab -u qmon -e
 
-	PATH=/usr/local/bin:/usr/bin:/bin 
+	PATH=/usr/local/bin:/usr/bin:/bin
 	0-59/5 * * * * /opt/qmon/qmon check
 
 Install web-frontend, e.g. with boa add two lines to boa.conf:
@@ -110,7 +110,7 @@ See 'etc/qmon.ini.sample' for a quick start.
 Format description:
 
 * qmon.ini consists of INI-style sections (e.g. \[test\]) with key/value pairs (a=b).
-* \[global\] is reserved for global settings. Other sections are either host descriptions or check descriptions. 
+* \[global\] is reserved for global settings. Other sections are either host descriptions or check descriptions.
 * ';' starts a one-line comment.
 * type=check can be omitted.
 * The value of 'cmd' does variable substitution, specifically $cfg(...) where ... is 'section.key', e.g. $cfg(ex.hostname)
@@ -147,7 +147,7 @@ The ini-parser comes with a simple, yet powerful macro processor. This is useful
 	the quick %COLOR% %ANIMAL1% jumps over the lazy %ANIMAL2%
 	#end template
 	#use X brown fox dog
-	
+
 This would result in
 
 	the quick brown fox jumps over the lazy dog
@@ -246,4 +246,3 @@ Complete example (keys must be unique but have no meaning):
 
 	[critical]
 	catchall=*
-

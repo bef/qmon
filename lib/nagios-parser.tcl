@@ -1,5 +1,3 @@
-#!/usr/bin/env tclsh8.6
-
 if {[info commands try] eq ""} {
 	package require try
 }
@@ -44,4 +42,3 @@ proc nagios_exec {cmd} {
 
 	return [list $code $status $output $perfdata]
 }
-
