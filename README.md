@@ -59,11 +59,14 @@ Configure qmon for use with Tcl 8.5, if Tcl 8.6 is not available: Edit 'qmon' to
 
 	TCLSH=tclsh8.5
 
-Create initial configuration file, e.g.
+Create initial configuration file `etc/qmon.ini` (or copy `etc/qmon.ini.sample`), e.g.
 
 	[global]
 	plugin_path=/opt/qmon/plugins /usr/lib/nagios/plugins
-	default_interval=3600
+	interval=3600
+	interval_warning=1800
+	interval_critical=600
+	interval_unknown=1800
 
 Then create sqlite DB:
 
@@ -113,16 +116,20 @@ Format description:
 * \[global\] is reserved for global settings. Other sections are either host descriptions or check descriptions.
 * ';' starts a one-line comment.
 * type=check can be omitted.
-* The value of 'cmd' does variable substitution, specifically $cfg(...) where ... is 'section.key', e.g. $cfg(ex.hostname)
+* All values are processed once with variable substitution and backslash substitution, specifically $cfg(...) where ... is 'section.key', e.g. $cfg(ex.hostname)
+* Substitutions can be disabled with a ! prefix, e.g. foo=!$bar. This can be useful for notify\_cmd, which does runtime substitution, in order to avoid double substitution problems and endless backslash-escaping. Having ! as first character is still possible with \\!.
 * Every _host_ implicitly sets 'desc' and 'type=host'
-* Unless explicitly changed every _check_ sets 'cmd', 'desc', 'host=unknown', 'type=check', 'interval=$cfg(global.default\_interval)', 'enabled=1'
+* Unless explicitly changed every _check_ sets 'cmd', 'desc', 'host=unknown', 'type=check', 'enabled=1' and various intervals
 
 Example:
 
 	[global]
 	plugin_path=/opt/qmon/plugins /usr/lib/nagios/plugins
-	default_interval=3600
-	;notify_cmd=echo -e "$name is now $status2 (was $status)" | ${::qmondir}/plugins/notify_via_xmpp me@jabber.example.com
+	interval=3600
+	interval_warning=1800
+	interval_critical=600
+	interval_unknown=1800
+	;notify_cmd=!echo -e "$name is now $status2 (was $status)" | ${::qmondir}/plugins/notify_via_xmpp me@jabber.example.com
 
 	[tohu]
 	type=host
@@ -246,3 +253,24 @@ Complete example (keys must be unique but have no meaning):
 
 	[critical]
 	catchall=*
+
+check\_mx
+---------
+Check SMTP server for open relay misconfiguration and greylisting.
+
+Example open relay check:
+
+	check_mx -addr 10.0.0.1 openrelay
+
+Example greylisting check:
+
+	check_mx -addr 10.0.0.1 -to test@example.com greylisting
+
+check\_http\_q
+--------------
+Alternative check\_http to check for HTTP return code, headers or MD5 of response body.
+
+Example - issue warning if MD5-sum of response body is unexpected:
+
+	check_http_q -md5 b01cfa73a80d7b27153b49e917f18747 http://example.com/
+
