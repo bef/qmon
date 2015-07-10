@@ -1,0 +1,14 @@
+## notify via XMPP - set JIDs separated by space
+# JIDS="user1@jabber.example.com user2@jabber.example.com"
+
+## notify via pushover - 1 or 0; configuration in notify_via_pushover.ini
+# USE_PUSHOVER=1
+
+## notify via email - set addresses separated by space
+# EMAIL_RECIPIENTS="root@localhost"
+
+## QMON URL to be included in messages
+# QMON_URL="http://example.com/qmon/"
+
+## alternative qmon plugin dir - better leave this as is
+# PLUGINDIR="/foo/bar"
