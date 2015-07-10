@@ -1,6 +1,7 @@
 #!/usr/bin/env tclsh
 ##
-## QMON notification plugin for pushover.net
+## QMON notification plugin - https://github.com/bef/qmon
+##   notify via pushover.net
 ## see https://pushover.net/api for API documentation
 ##
 

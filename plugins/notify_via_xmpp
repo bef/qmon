@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-## xmpp sender script. derived from http://xmpppy.sourceforge.net/examples/xsend.py
+##
+## QMON notification plugin - https://github.com/bef/qmon
+##   notify via XMPP (Jabber)
+## derived from http://xmpppy.sourceforge.net/examples/xsend.py
 ## / BeF / 2014-01-19
 ##
 

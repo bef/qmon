@@ -1,5 +1,7 @@
 #!/usr/bin/env tclsh
 ##
+## QMON check plugin - https://github.com/bef/qmon
+##
 ## check (your own) site with ssllabs.com
 ## https://github.com/ssllabs/ssllabs-scan/blob/master/ssllabs-api-docs.md
 ##

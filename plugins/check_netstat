@@ -1,5 +1,7 @@
 #!/usr/bin/env tclsh8.6
-#
+##
+## QMON check plugin - https://github.com/bef/qmon
+##
 
 package require cmdline
 package require inifile

@@ -1,4 +1,7 @@
 #!/usr/bin/env tclsh
+##
+## QMON check plugin - https://github.com/bef/qmon
+##
 
 package require Tcl 8.6
 package require cmdline
