@@ -22,7 +22,22 @@ set options [list \
 	{nc "no color output. for 'status'"} \
 	{v "verbose output"} \
 	]
-set usage "v$::qmon_version - by BeF <bef@pentaphase.de>\n$::argv0 \[options] <showconfig|update|check|status>\noptions:"
+set usage "v$::qmon_version - by Ben Fuhrmannek <bef@pentaphase.de>
+  https://github.com/bef/qmon\n
+$::argv0 \[options] <cmd>
+
+COMMANDS:
+showconfig : show parsed configuration
+             this can be used to check the configuration for syntax errors.
+
+    update : commit changes from ini to database
+
+     check : actually perform the check. this command should be used in a crontab
+
+    status : print out current status 
+
+OPTIONS:"
+
 if {[catch {
 	array set params [::cmdline::getoptions argv $options $usage]
 } err]} {
