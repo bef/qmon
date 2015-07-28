@@ -78,7 +78,7 @@ proc run_check {} {
 			}
 			if {$grade ne $::params(g)} {
 				puts "CRITICAL - API graded '$grade' instead of '$::params(g)'"
-				return 2
+				exit 2
 			}
 		}
 		puts "OK - grade $grade"
