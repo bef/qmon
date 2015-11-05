@@ -1,0 +1,92 @@
+#!/bin/bash
+##
+## QMON check plugin - https://github.com/bef/qmon
+##
+## download gpg key and try to encrypt
+##
+
+GPG=gpg2
+FAKETIME="2 weeks"
+
+function cleanup() {
+	if [[ -d "$TMPHOME" ]]; then
+		rm -rf "$TMPHOME"
+	fi
+}
+
+function parse_options() {
+	local opt
+	while getopts "u:i:hdg:f:" opt; do
+		case "$opt" in
+			u) KEYURL="$OPTARG" ;;
+			i) KEYID="$OPTARG" ;;
+			d) DEBUG=1 ;;
+			g) GPG="$OPTARG" ;;
+			f) FAKETIME="$OPTARG" ;;
+			h)
+				echo "Usage: $0 [-h] [-d] [-g <gpg-binary>] [-f <faketime>] -u <url> -i <id/email>"
+				echo "  -d  debug"
+				echo "  -g  gpg binary"
+				echo "  -h  show help"
+				echo -e "\nExample: $0 -f '1 week' -u http://example.com/key.asc -i info@example.com"
+				exit 3
+				;;
+			*) exit 3
+		esac
+	done
+	if [[ -z "$KEYURL" ]]; then
+		echo "key url missing"
+		exit 1
+	fi
+	if [[ -z "$KEYID" ]]; then
+		echo "key id missing"
+		exit 1
+	fi
+}
+
+function debug() {
+	if [[ -z $DEBUG ]]; then
+		"$@" >/dev/null 2>&1
+	else
+		echo "CMD: $*" >&2
+		"$@"
+	fi
+}
+
+function check_binaries() {
+	for i in "$GPG" faketime uuidgen; do
+		if ! which "$i" >/dev/null 2>&1; then
+			echo "ERROR: need $i"
+			exit 3
+		fi
+	done
+}
+
+parse_options "$@"; shift $((OPTIND-1))
+check_binaries
+
+TMPHOME=/tmp/gpgtest-$$-$(uuidgen)
+mkdir "$TMPHOME"
+chmod 700 "$TMPHOME"
+
+if ! debug "$GPG" --homedir "$TMPHOME" --batch --no-auto-check-trustdb --fetch-keys "$KEYURL"; then
+	echo "ERROR: cannot fetch key from $KEYURL"
+	cleanup
+	exit 3
+fi
+
+if ! echo test | debug "$GPG" --homedir "$TMPHOME" --batch --encrypt --recipient "$KEYID" -a --trust-model always --dry-run; then
+	echo "CRITICAL: cannot encrypt for key $KEYID"
+	cleanup
+	exit 2
+fi
+
+if ! echo test | debug faketime "$FAKETIME" "$GPG" --homedir "$TMPHOME" --batch --encrypt --recipient "$KEYID" -a --trust-model always --dry-run; then
+	echo "WARNING: will not be able to encrypt for key $KEYID in '$FAKETIME'"
+	cleanup
+	exit 2
+fi
+
+echo "OK"
+cleanup
+exit 0
