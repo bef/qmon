@@ -1,0 +1,100 @@
+#!/usr/bin/env tclsh
+##
+## QMON check plugin - https://github.com/bef/qmon
+##
+
+package require Tcl 8.6
+package require cmdline
+package require http
+package require tls
+package require json
+
+## procs
+proc get_github_latest {owner_repo} {
+	global params
+	set url "https://api.github.com/repos/$owner_repo/releases/latest"
+	
+	set token [::http::geturl $url -timeout 5000]
+
+	if {$params(d)} {
+		puts [::http::status $token]
+		puts [::http::code $token]
+		puts [::http::data $token]
+	}
+
+	if {[::http::status $token] ne "ok"} {
+		return -code error "HTTP error. something went wrong."
+	}
+	set data [::http::data $token]
+	set code [::http::ncode $token]
+		
+	::http::cleanup $token
+
+	if {$code ne "200"} {
+		return -code error "API call failed with code $code."
+	}
+	if {$data eq ""} {
+		return -code error "empty HTTP response. something went wrong."
+	}
+	
+	return [::json::json2dict $data]
+}
+
+proc run_check {} {
+	global params
+	
+	set link_name [file link $params(l)]
+	if {![regexp -- {((?:\d|\.)+)} $link_name -> link_version]} {
+		return -code error "invalid link $params(l) -> $link_name"
+	}
+	
+	set github_repo [get_github_latest $params(r)]
+	set github_tagname [dict get $github_repo tag_name]
+	if {![regexp -- {((?:\d|\.)+)} $github_tagname -> github_version]} {
+		return -code error "invalid github tag $github_tagname"
+	}
+	
+	if {$link_version eq $github_version} {
+		puts "OK - version $github_version"
+		exit 0
+	} else {
+		puts "WARNING - new version $github_version available (you have $link_version)"
+		exit 1
+	}
+	
+	## timeout
+	return -code error "API took too long."
+}
+
+## cmdline
+set options {
+	{d.secret "debug output"}
+	{r.arg "" "repository as 'owner/repo', e.g. foo/bar"}
+	{l.arg "" "link to filename with version string, e.g. 'foo' which links to 'foo-6.0.3'"}
+}
+
+set usage "- ...\n$::argv0 \[options]\noptions:"
+if {[catch {
+	array set params [::cmdline::getoptions argv $options $usage]
+	foreach p {r l} {
+		if {$params($p) eq ""} { return -code error "ERROR: parameter $p is required" }
+	}
+} err]} {
+	puts $err
+	exit 3
+}
+
+##
+
+
+## init TLS
+::tls::init -tls1 true -ssl2 false -ssl3 false
+::http::register https 443 ::tls::socket
+::http::config -useragent "QMON"
+
+if {[catch {
+	run_check
+} err]} {
+	puts $err
+	exit 3
+}
