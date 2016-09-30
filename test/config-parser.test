@@ -7,7 +7,7 @@ set libdir [file join $here .. lib]
 source [file join $libdir ini-parser.tcl]
 source [file join $libdir config-parser.tcl]
 
-# proc 
+# proc
 test cp-1 "parse_config empty" -body {
 	set cfg [parse_config_string {}]
 	dict get $cfg checks
@@ -45,4 +45,3 @@ cmd=test $cfg(global.foo)
 }]
 	dict get $cfg "check1.cmd"
 } -result {test bar}
-
