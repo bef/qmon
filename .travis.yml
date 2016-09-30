@@ -8,6 +8,10 @@ addons:
     packages:
       - tcl
       - tcllib
+before_install:
+  - lsb_release -a
+  - uname -a
+  - echo 'puts $tcl_version' |tclsh
 before_script:
   - chmod +x test/run.tcl
 script: ./test/run.tcl
