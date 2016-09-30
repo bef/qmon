@@ -1,6 +1,8 @@
 language: generic
 dist: trusty
+sudo: required
 os: linux
+group: edge
 addons:
   apt:
     packages:
