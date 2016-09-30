@@ -1,0 +1,11 @@
+language: generic
+dist: trusty
+os: linux
+addons:
+  apt:
+    packages:
+      - tcl
+      - tcllib
+before_script:
+  - chmod +x test/run.tcl
+script: ./test/run.tcl
