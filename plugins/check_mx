@@ -12,6 +12,12 @@ set options {
 	{port.arg "25" "server port"}
 	{helo.arg "foo" "HELO"}
 	{to.arg "foo@example.com" "valid TO"}
+	{resp-connect.arg {220*} "expected response pattern after connect"}
+	{resp-helo.arg {250*} "expected response pattern after HELO"}
+	{resp-mailfrom.arg {250*} "expected response pattern after MAIL FROM"}
+	{resp-rcptto-gl.arg {450*Recipient address rejected: Greylisted*} "expected response pattern after RCPT TO for greylisting check"}
+	{resp-rcptto-or.arg {?54*Relay access denied} "expected response pattern after RCPT TO for open relay check"}
+
 }
 lappend options [list from.arg "[uuid::uuid generate]@example.com" "FROM (random for greylist check)"]
 
@@ -22,19 +28,20 @@ proc returnunless {pattern str} {
 }
 
 proc check_greylisting {addr port helo from to} {
+	global params
 	try {
 		set s [socket $addr $port]
 		fconfigure $s -buffering line -translation crlf
-		returnunless {220*} [gets $s]
-		
+		returnunless $params(resp-connect) [gets $s]
+
 		puts $s "HELO $helo"
-		returnunless {250*} [gets $s]
+		returnunless $params(resp-helo) [gets $s]
 
 		puts $s "MAIL FROM:<$from>"
-		returnunless {250*} [gets $s]
+		returnunless $params(resp-mailfrom) [gets $s]
 
 		puts $s "RCPT TO:<$to>"
-		returnunless {450*Recipient address rejected: Greylisted*} [gets $s]
+		returnunless $params(resp-rcptto-gl) [gets $s]
 
 		puts $s "QUIT"
 		return OK
@@ -44,19 +51,20 @@ proc check_greylisting {addr port helo from to} {
 }
 
 proc check_openrelay {addr port helo from to} {
+	global params
 	try {
 		set s [socket $addr $port]
 		fconfigure $s -buffering line -translation crlf
-		returnunless {220*} [gets $s]
-		
+		returnunless $params(resp-connect) [gets $s]
+
 		puts $s "HELO $helo"
-		returnunless {250*} [gets $s]
+		returnunless $params(resp-helo) [gets $s]
 
 		puts $s "MAIL FROM:<$from>"
-		returnunless {250*} [gets $s]
+		returnunless $params(resp-mailfrom) [gets $s]
 
 		puts $s "RCPT TO:<$to>"
-		returnunless {554*Relay access denied} [gets $s]
+		returnunless $params(resp-rcptto-or) [gets $s]
 
 		puts $s "QUIT"
 		return OK
@@ -89,7 +97,7 @@ if {[catch {
 lassign $result state msg
 switch $state {
 	OK { puts "OK"; return 0}
-	WARNING { puts "$state: $msg"; return 1 }
-	CRITICAL { puts "$state: $msg"; return 2 }
-	default { puts "ERROR: $msg"; return 3 }
+	WARNING { puts "$state: $msg"; exit 1 }
+	CRITICAL { puts "$state: $msg"; exit 2 }
+	default { puts "ERROR: $msg"; exit 3 }
 }
