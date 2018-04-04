@@ -46,6 +46,15 @@ cmd=$::qmondir/test/nagiosplugintest.sh critical
 [foo_unknown]
 cmd=$::qmondir/test/nagiosplugintest.sh unknown
 
+[foo_dep_ok]
+cmd=$::qmondir/test/nagiosplugintest.sh ok
+dependencies=foo_ok
+
+[foo_dep_warning]
+;; this check will never be executed
+cmd=$::qmondir/test/nagiosplugintest.sh ok
+dependencies=foo_ok,foo_warning
+
 [foo]
 enabled=0
 

@@ -24,15 +24,16 @@ proc create_db {} {
 			last_check NUMERIC,
 			interval_warning NUMERIC,
 			interval_critical NUMERIC,
-			interval_unknown NUMERIC
+			interval_unknown NUMERIC,
+			dependencies TEXT
 		);
 	}
 }
 
 proc update_check {args} {
-	set columns {name cmd interval interval_warning interval_critical interval_unknown enabled host desc}
+	set columns {name cmd interval interval_warning interval_critical interval_unknown enabled host desc dependencies}
 	foreach {k v} $args { set $k $v }
-	
+
 	if {[db exists {SELECT 1 FROM checks WHERE name = :name}]} {
 		set setkv {}
 		foreach c [lrange $columns 1 end] { lappend setkv "$c = :$c" }
@@ -53,7 +54,7 @@ proc delete_check {check} {
 
 proc get_checks_for_execution {{force 0} {testlist {}}} {
 	set sql {
-		SELECT name, cmd, status
+		SELECT name, cmd, status, dependencies
 			FROM checks
 			WHERE enabled}
 	if {!$force} {
@@ -74,7 +75,22 @@ proc get_checks_for_execution {{force 0} {testlist {}}} {
 		}
 		append sql " AND ([join $testlistsql " OR "])"
 	}
-	return [db eval $sql]
+
+	## check dependencies
+	set result [lmap {name cmd status dependencies} [db eval $sql] {
+		set success 1
+		foreach dep $dependencies {
+			set result [db eval "SELECT 1 FROM checks WHERE name = :dep AND status = 'ok'"]
+			if {$result ne "1"} {
+				set success 0
+				break
+			}
+		}
+		if {!$success} { continue }
+		list $name $cmd $status
+	}]
+
+	return [concat {*}$result]
 }
 
 proc update_result {check status output perfdata} {

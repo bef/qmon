@@ -34,7 +34,7 @@ showconfig : show parsed configuration
 
      check : actually perform the check. this command should be used in a crontab
 
-    status : print out current status 
+    status : print out current status
 
 OPTIONS:"
 
@@ -77,11 +77,11 @@ switch -glob -- [lindex $argv 0] {
 			}
 		}
 	}
-	
+
 	update {
 		init_db $params(db)
 		create_db
-		
+
 		## delete checks from db which are not in cfg
 		foreach check [all_checks_names] {
 			if {[info exists cfg(${check}.type)]} {
@@ -89,28 +89,28 @@ switch -glob -- [lindex $argv 0] {
 			}
 			delete_check $check
 		}
-		
+
 		## create/update all other checks
 		foreach {host checks} $cfg(checks) {
 			foreach check $checks {
 				set update_args [list name $check]
-				foreach k {cmd interval interval_warning interval_critical interval_unknown enabled host desc} {
+				foreach k {cmd interval interval_warning interval_critical interval_unknown enabled host desc dependencies} {
 					lappend update_args $k $::cfg(${check}.$k)
 				}
 				update_check {*}$update_args
 			}
 		}
-		
+
 		db close
 	}
-	
+
 	check {
 		set testlist [lrange $argv 1 end]
 		init_db $params(db)
 		foreach {name cmd status} [get_checks_for_execution $params(f) $testlist] {
 			if {[string index $cmd 0] ne "/"} {
 				set cmd1 [lindex [split $cmd " "] 0]
-				
+
 				foreach path $::cfg(global.plugin_path) {
 					if {[file executable "$path/$cmd1"] && ![file isdirectory "$path/$cmd1"]} {
 						set cmd "$path/$cmd"
@@ -123,23 +123,23 @@ switch -glob -- [lindex $argv 0] {
 				puts "$name: $cmd"
 				if {$params(t)} {continue}
 			}
-			
+
 			set ret [nagios_exec $cmd]
 			lassign $ret code status2 output perfdata
 			if {$params(v)} {
 				puts "$name: \[$status2\] $output | $perfdata"
 			}
 			update_result $name $status2 $output $perfdata
-			
+
 			if {$status ne $status2 && [info exists cfg(global.notify_cmd)]} {
 				set cmd [lmap arg $cfg(global.notify_cmd) {subst $arg}]
 				if {[catch {exec {*}$cmd} err]} {puts stderr "ERROR in cmd for $name:\n$err"}
 			}
-			
+
 		}
 		db close
 	}
-	
+
 	status {
 		array set color {ok "" warning "" critical "" unknown "" new "" default ""}
 		if {!$params(nc)} {
@@ -157,7 +157,7 @@ switch -glob -- [lindex $argv 0] {
 		}
 		db close
 	}
-	
+
 	jsonstatus {
 		package require json::write
 		set result {}
@@ -173,7 +173,7 @@ switch -glob -- [lindex $argv 0] {
 		db close
 		puts [json::write array {*}$result]
 	}
-	
+
 	default {
 		puts "? :(\ntry $::argv0 -h"
 		exit 1
